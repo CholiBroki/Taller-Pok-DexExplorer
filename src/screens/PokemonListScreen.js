@@ -6,11 +6,13 @@ import { getPokemonList } from '../services/pokeapi';
 const PAGE_SIZE = 20;
 
 export default function PokemonListScreen({ onSelectPokemon }) {
+  // Concepto: useState guarda los datos que, al cambiar, vuelven a dibujar la pantalla
   const [pokemons, setPokemons] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-
+  // Concepto: useRef evita pedir dos páginas a la vez, porque
+  // onEndReached puede dispararse varias veces seguidas
   const isLoadingRef = useRef(false);
 
   async function loadMore() {
@@ -31,11 +33,13 @@ export default function PokemonListScreen({ onSelectPokemon }) {
     }
   }
 
+  // Concepto: el array vacío [] carga la primera página una sola vez
   useEffect(() => {
     loadMore();
   }, []);
 
   return (
+    // Concepto: FlatList renderiza solo lo visible (mejor que ScrollView con map)
     <FlatList
       data={pokemons}
       keyExtractor={(item) => String(item.id)}

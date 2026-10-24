@@ -4,9 +4,7 @@ import { capitalize, formatPokemonNumber } from '../utils/pokemon';
 export default function PokemonCard({ pokemon, onPress }) {
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(pokemon)}>
-      {
-        
-      }
+      {/* Concepto: una Image remota necesita width y height explícitos */}
       <Image source={{ uri: pokemon.image }} style={styles.image} />
       <Text style={styles.number}>{formatPokemonNumber(pokemon.id)}</Text>
       <Text style={styles.name}>{capitalize(pokemon.name)}</Text>
