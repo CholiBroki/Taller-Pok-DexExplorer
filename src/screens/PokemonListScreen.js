@@ -15,6 +15,10 @@ export default function PokemonListScreen({ onSelectPokemon }) {
   // onEndReached puede dispararse varias veces seguidas
   const isLoadingRef = useRef(false);
 
+  // Concepto: useRef también guarda el offset actual, porque a diferencia
+  // de pokemons.length se actualiza al instante y no queda desactualizado
+  const offsetRef = useRef(0);
+
   async function loadMore() {
     if (isLoadingRef.current || !hasMore) return;
 
@@ -22,7 +26,8 @@ export default function PokemonListScreen({ onSelectPokemon }) {
     setLoadingMore(true);
 
     try {
-      const result = await getPokemonList(PAGE_SIZE, pokemons.length);
+      const result = await getPokemonList(PAGE_SIZE, offsetRef.current);
+      offsetRef.current += PAGE_SIZE;
       setPokemons((previous) => [...previous, ...result.pokemons]);
       setHasMore(result.hasMore);
     } catch (error) {
