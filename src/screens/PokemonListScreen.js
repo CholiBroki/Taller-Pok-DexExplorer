@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Button,
   FlatList,
   StyleSheet,
   Text,
@@ -18,6 +19,7 @@ export default function PokemonListScreen({ onSelectPokemon }) {
   const [pokemons, setPokemons] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [listError, setListError] = useState(false);
 
   // Estado de la búsqueda
   const [query, setQuery] = useState('');
@@ -33,8 +35,12 @@ export default function PokemonListScreen({ onSelectPokemon }) {
   // de pokemons.length se actualiza al instante y no queda desactualizado
   const offsetRef = useRef(0);
 
+  // Concepto: useRef también frena los reintentos automáticos tras un error,
+  // para que onEndReached no repita la petición sin parar
+  const hasErrorRef = useRef(false);
+
   async function loadMore() {
-    if (isLoadingRef.current || !hasMore) return;
+    if (isLoadingRef.current || hasErrorRef.current || !hasMore) return;
 
     isLoadingRef.current = true;
     setLoadingMore(true);
@@ -45,12 +51,19 @@ export default function PokemonListScreen({ onSelectPokemon }) {
       setPokemons((previous) => [...previous, ...result.pokemons]);
       setHasMore(result.hasMore);
     } catch (error) {
-      // Por ahora solo en consola; en la fase 6 se muestra en pantalla
-      console.log('Error al cargar la lista:', error.message);
+      hasErrorRef.current = true;
+      setListError(true);
     } finally {
       isLoadingRef.current = false;
       setLoadingMore(false);
     }
+  }
+
+  // El botón "Reintentar" de la lista: limpia el error y vuelve a pedir la misma página
+  function retryList() {
+    hasErrorRef.current = false;
+    setListError(false);
+    loadMore();
   }
 
   // Concepto: el array vacío [] carga la primera página una sola vez
@@ -110,8 +123,9 @@ export default function PokemonListScreen({ onSelectPokemon }) {
       return (
         <View style={styles.centered}>
           <Text style={styles.message}>
-            Ocurrió un error al buscar. Intenta de nuevo.
+            Ocurrió un error al buscar. Revisa tu conexión e intenta de nuevo.
           </Text>
+          <Button title="Reintentar" onPress={handleSearch} />
         </View>
       );
     }
@@ -120,6 +134,27 @@ export default function PokemonListScreen({ onSelectPokemon }) {
       return (
         <View style={styles.resultContainer}>
           <PokemonCard pokemon={searchResult} onPress={onSelectPokemon} />
+        </View>
+      );
+    }
+
+    // Estado 'idle': primera carga de la lista (todavía no hay Pokémon)
+    if (pokemons.length === 0) {
+      if (listError) {
+        return (
+          <View style={styles.centered}>
+            <Text style={styles.message}>
+              No se pudo cargar la lista. Revisa tu conexión e intenta de nuevo.
+            </Text>
+            <Button title="Reintentar" onPress={retryList} />
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" />
+          <Text style={styles.message}>Cargando Pokémon...</Text>
         </View>
       );
     }
@@ -137,7 +172,14 @@ export default function PokemonListScreen({ onSelectPokemon }) {
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          loadingMore ? (
+          listError ? (
+            <View style={styles.footerError}>
+              <Text style={styles.message}>
+                No se pudieron cargar más Pokémon.
+              </Text>
+              <Button title="Reintentar" onPress={retryList} />
+            </View>
+          ) : loadingMore ? (
             <ActivityIndicator size="large" style={styles.loader} />
           ) : null
         }
@@ -176,10 +218,14 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   message: {
-    marginTop: 12,
+    marginVertical: 12,
     fontSize: 16,
     textAlign: 'center',
     color: '#555555',
+  },
+  footerError: {
+    alignItems: 'center',
+    padding: 16,
   },
   resultContainer: {
     width: '50%',
